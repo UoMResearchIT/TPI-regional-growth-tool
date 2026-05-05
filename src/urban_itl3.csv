@@ -1,0 +1,123 @@
+0,NUTS3,Typology,itl3name0
+0,TLC11,1,Hartlepool and Stockton-on-Tees
+1,TLC12,1,South Teesside
+2,TLC13,1,Darlington
+3,TLC14,1,Durham CC
+4,TLC22,1,Tyneside
+5,TLC23,1,Sunderland
+6,TLD33,1,Manchester
+7,TLD34,1,Greater Manchester South West
+8,TLD35,1,Greater Manchester South East
+9,TLD36,1,Greater Manchester North West
+10,TLD37,1,Greater Manchester North East
+11,TLD41,1,Blackburn with Darwen
+12,TLD42,1,Blackpool
+13,TLD44,1,Lancaster and Wyre
+14,TLD45,1,Mid Lancashire
+15,TLD46,1,East Lancashire
+16,TLD47,1,Chorley and West Lancashire
+17,TLD61,1,Warrington
+18,TLD62,1,Cheshire East
+19,TLD63,1,Cheshire West and Chester
+20,TLD71,1,East Merseyside
+21,TLD72,1,Liverpool
+22,TLD73,1,Sefton
+23,TLD74,1,Wirral
+24,TLE11,1,"Kingston upon Hull, City of"
+25,TLE12,1,East Riding of Yorkshire
+26,TLE31,1,"Barnsley, Doncaster and Rotherham"
+27,TLE32,1,Sheffield
+28,TLE41,1,Bradford
+29,TLE42,1,Leeds
+30,TLE44,1,Calderdale and Kirklees
+31,TLE45,1,Wakefield
+32,TLF11,1,Derby
+33,TLF12,1,East Derbyshire
+34,TLF13,1,South and West Derbyshire
+35,TLF14,1,Nottingham
+36,TLF15,1,North Nottinghamshire
+37,TLF16,1,South Nottinghamshire
+38,TLF21,1,Leicester
+39,TLF22,1,Leicestershire CC and Rutland
+40,TLF25,1,North Northamptonshire
+41,TLG13,1,Warwickshire
+42,TLG23,1,Stoke-on-Trent
+43,TLG24,1,Staffordshire CC
+44,TLG31,1,Birmingham
+45,TLG32,1,Solihull
+46,TLG33,1,Coventry
+47,TLG36,1,Dudley
+48,TLG37,1,Sandwell
+49,TLG38,1,Walsall
+50,TLG39,1,Wolverhampton
+51,TLH11,1,Peterborough
+52,TLH15,1,Norwich and East Norfolk
+53,TLH21,1,Luton
+54,TLH23,1,Hertfordshire
+55,TLH24,1,Bedford
+56,TLH25,1,Central Bedfordshire
+57,TLH31,1,Southend-on-Sea
+58,TLH32,1,Thurrock
+59,TLH36,1,Heart of Essex
+60,TLH37,1,Essex Thames Gateway
+61,TLI31,1,Camden and City of London
+62,TLI32,1,Westminster
+63,TLI33,1,Kensington & Chelsea and Hammersmith & Fulham
+64,TLI34,1,Wandsworth
+65,TLI41,1,Hackney and Newham
+66,TLI42,1,Tower Hamlets
+67,TLI43,1,Haringey and Islington
+68,TLI44,1,Lewisham and Southwark
+69,TLI45,1,Lambeth
+70,TLI51,1,Bexley and Greenwich
+71,TLI52,1,Barking & Dagenham and Havering
+72,TLI53,1,Redbridge and Waltham Forest
+73,TLI54,1,Enfield
+74,TLI61,1,Bromley
+75,TLI62,1,Croydon
+76,TLI63,1,"Merton, Kingston upon Thames and Sutton"
+77,TLI71,1,Barnet
+78,TLI72,1,Brent
+79,TLI73,1,Ealing
+80,TLI74,1,Harrow and Hillingdon
+81,TLI75,1,Hounslow and Richmond upon Thames
+82,TLJ11,1,Berkshire
+83,TLJ12,1,Milton Keynes
+84,TLJ21,1,Brighton and Hove
+85,TLJ25,1,West Surrey
+86,TLJ26,1,East Surrey
+87,TLJ27,1,West Sussex (South West)
+88,TLJ28,1,West Sussex (North East)
+89,TLJ31,1,Portsmouth
+90,TLJ32,1,Southampton
+91,TLJ35,1,South Hampshire
+92,TLJ36,1,Central Hampshire
+93,TLJ37,1,North Hampshire
+94,TLJ41,1,Medway
+95,TLJ43,1,Kent Thames Gateway
+96,TLJ44,1,East Kent
+97,TLK11,1,"Bristol, City of"
+98,TLK12,1,"Bath and North East Somerset, North Somerset and South Gloucestershire"
+99,TLK24,1,"Bournemouth, Christchurch and Poole"
+100,TLK41,1,Plymouth
+101,TLK42,1,Torbay
+102,TLL15,1,Central Valleys
+103,TLL16,1,Gwent Valleys
+104,TLL17,1,Bridgend and Neath Port Talbot
+105,TLL18,1,Swansea
+106,TLL21,1,Monmouthshire and Newport
+107,TLL22,1,Cardiff and Vale of Glamorgan
+108,TLL23,1,Flintshire and Wrexham
+109,TLM71,1,Angus and Dundee City
+110,TLM72,1,Clackmannanshire and Fife
+111,TLM73,1,East Lothian and Midlothian
+112,TLM75,1,City of Edinburgh
+113,TLM76,1,Falkirk
+114,TLM78,1,West Lothian
+115,TLM81,1,"East Dunbartonshire, West Dunbartonshire and Helensburgh and Lomond"
+116,TLM82,1,Glasgow City
+117,TLM83,1,"Inverclyde, East Renfrewshire and Renfrewshire"
+118,TLM84,1,North Lanarkshire
+119,TLM95,1,South Lanarkshire
+120,TLN06,1,Belfast
+121,TLN09,1,Ards and North Down
