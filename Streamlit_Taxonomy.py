@@ -14,7 +14,9 @@ import time
 def load_data():
     t0 = time.time()
     data = pd.read_csv('src/regional_growth_tool_scatter.csv', index_col = [0,1,2,3])
-    itlmapping = pd.read_csv('src/itlmapping.csv')
+    indicators = pd.read_csv('src/regional_growth_tool_indicators.csv', index_col = [0,1,2,3])
+    data = data.join(indicators[['Jobs', 'Hours', 'RGVA']])
+    itlmapping = pd.read_csv('src/itlmapping.csv')[["itl1","itl1name","itl2","itl2name","itl3","itl3name","mca","mcaname"]].drop_duplicates()
 
     print("Runtime loading data: " + str(int((time.time() - t0)*1000)) + " miliseconds")
     return data, itlmapping
@@ -44,19 +46,26 @@ def process_data(data, itlmapping, start, year, levels, region, customregion):
     #     '''
 
     #Select productivity data from the output frame
-    dta = data.loc[(slice(None), slice(None), slice(None), period), [volume, 'Population']]
+    dta = data.loc[(slice(None), slice(None), slice(None), period), [volume, 'Population', 'Jobs', 'Hours', 'RGVA']]
 
 
 
     #Create a new column with the log growth of the productivity level
     dta['Log percentage change'] = np.log(dta[volume]).groupby(['level', 'code', 'name']).diff()
+    dta['RGVA log percentage change'] = np.log(dta['RGVA']).groupby(['level', 'code', 'name']).diff()
+    dta['Hours log percentage change'] = np.log(dta['Hours']).groupby(['level', 'code', 'name']).diff()
     median_population = dta['Population'].median()
     dta['Population'] = dta['Population'].fillna(median_population)
+    median_jobs = dta['Jobs'].median()
+    dta['Jobs'] = dta['Jobs'].fillna(median_jobs)
      #finally calculate the growth average over the period
     #create new dataframe for the aggregates over the period
     dtaAgg = pd.DataFrame()
     dtaAgg['Population'] = dta['Population']
+    dtaAgg['Jobs'] = dta['Jobs']
     dtaAgg['Average Annual log percentage change'] = dta['Log percentage change'].groupby(['level', 'code', 'name']).mean()
+    dtaAgg['Average Annual log percentage change in RGVA'] = dta['RGVA log percentage change'].groupby(['level', 'code', 'name']).mean()
+    dtaAgg['Average Annual log percentage change in Hours'] = dta['Hours log percentage change'].groupby(['level', 'code', 'name']).mean()
     #Calculate the total growth over the period and add in new column
     dtaAgg['Log percentage change'] = dta['Log percentage change'].groupby(['level', 'code', 'name']).sum()
     #Calculate regular percentage growth
@@ -225,17 +234,17 @@ def main():
         year = [year[0], year[0] + 1] if year[0] < int(max(data.index.unique(level='year'))) else [year[0] - 1, year[0]]
 
     indicator_bounds = {'Export Intensity': [2016, 2023],
-                        'New Businesses': [2017, 2023],
-                        'Low Skilled': [2016, 2023],
-                        'High Skilled': [2016, 2023],
-                        'Active': [2016, 2023],
-                        'Inactive due to Illness': [2016, 2023],
-                        'Working Age': [2016, 2023],
-                        '5G connectivity': [2023, 2023],
-                        'Gigabit connectivity': [2021, 2023],
-                        'GFCF per job': [2008, 2020],
-                        'ICT per job': [2008, 2020],
-                        'Intangibles per job': [2008, 2020]}
+                        'New Businesses': [2017, 2024],
+                        'High Growth Businesses': [2017, 2024],
+                        'Low Skilled': [2016, 2024],
+                        'High Skilled': [2016, 2024],
+                        'Active': [2016, 2024],
+                        'Inactive due to Illness': [2016, 2024],
+                        'Working Age': [2016, 2024],
+                        'NEET rate': [2016, 2024],
+                        '5G connectivity': [2024, 2024],
+                        'Gigabit connectivity': [2021, 2024],
+                        'GFCF per job': [2008, 2020]}
     
     if threeD and (year[1] < indicator_bounds[z][0] or year[1] > indicator_bounds[z][1]):
         year = (year[0], indicator_bounds[z][1])
@@ -340,7 +349,9 @@ def main():
         showtrend = False
     showlabel = st.sidebar.toggle(label='Show labels', value=showlabel_default)
     population = st.sidebar.toggle(label='Toggle population bubbles', value=population_default)
-
+    jobs = st.sidebar.toggle(label='Switch bubbles to jobs', value=False)
+    # compare_rgva_hours = st.sidebar.toggle(label='Compare RGVA and hours growth', value=False) if not threeD else False
+    compare_rgva_hours = False
     # download = st.sidebar.toggle(label="Enable PDF download *(slower app)*", value=False)
 
 
@@ -356,10 +367,16 @@ def main():
         fixaxes = False
     
     if fixaxes:
-        xrange = st.sidebar.slider('Set X-axis range for productivity per hour', min_value=0, max_value=100,
-            value=[15, 75], format = "£%d") 
-        yrange = st.sidebar.slider('Set Y-axis range for productivity change', -20, max_value=20,
-            value=[-3, 3], format = "%f %%") 
+        if compare_rgva_hours:
+            xrange = st.sidebar.slider('Set X-axis range for hours growth', min_value=-20, max_value=20,
+                value=[-3, 3], format = "%f %%")
+            yrange = st.sidebar.slider('Set Y-axis range for RGVA growth', min_value=-20, max_value=20,
+                value=[-3, 3], format = "%f %%")
+        else:
+            xrange = st.sidebar.slider('Set X-axis range for productivity per hour', min_value=0, max_value=100,
+                value=[15, 75], format = "£%d")
+            yrange = st.sidebar.slider('Set Y-axis range for productivity change', -20, max_value=20,
+                value=[-3, 3], format = "%f %%")
     else:
         xrange = None
         yrange = None
@@ -379,7 +396,7 @@ def main():
         st.markdown(
             """
 
-            ###### Developed by the [TPI Productivity Lab](https://www.productivity.ac.uk/the-productivity-lab/), this tool facilitates dynamic visualizations of regional productivity in the United Kingdom, allowing for visual comparisons of productivity across different time periods and geographic areas. Data is sourced from the June 2025 release of the [ONS dataset on sub-regional productivity](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity/datasets/subregionalproductivitylabourproductivitygvaperhourworkedandgvaperfilledjobindicesbyuknuts2andnuts3subregions), which provides information on annual labour productivity. Labour productivity is measured as gross value added (GVA) per hour worked for regions in the UK, defined according to the [International Territorial Level (ITL)](https://www.ons.gov.uk/methodology/geography/ukgeographies/eurostat) definitions.
+            ###### Developed by the [TPI Productivity Lab](https://www.productivity.ac.uk/the-productivity-lab/), this tool facilitates dynamic visualizations of regional productivity in the United Kingdom, allowing for visual comparisons of productivity across different time periods and geographic areas. Data is sourced from the November 2026 release of the [ONS dataset on sub-regional productivity](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity/datasets/subregionalproductivitylabourproductivitygvaperhourworkedandgvaperfilledjobindicesbyuknuts2andnuts3subregions), which provides information on annual labour productivity. Labour productivity is measured as gross value added (GVA) per hour worked for regions in the UK, defined according to the [International Territorial Level (ITL)](https://www.ons.gov.uk/methodology/geography/ukgeographies/eurostat) definitions.
 
             #### Interpreting the Figure: Taxonomy and Convergence
 
@@ -396,9 +413,9 @@ def main():
 
             The top section of the left-hand side panel of the tool offers several options to customize the data plotted in the visualization. These options provide users with flexibility in defining the scope of their analysis, enabling them to focus on specific time periods, geographical areas, and levels of detail according to their research or analytical needs. The following options for data selection are available:
 
-            **3D mode:** Switch the plot to 3D mode where you can use your cursor to move the perspective of the plot to compare GVA per Hour and growth to a 3rd variable.
+            **3D mode:** Switch the plot to 3D mode where you can use your cursor to move the perspective of the plot to compare GVA per Hour and growth to a 3rd variable - a driver of productivity.
 
-            **Select indicator for 3rd axis:** Available when 3D mode is on. Choose one of the productivity indicators from the [TPI ITL3 scorecard](https://doi.org/10.48420/23791680) series and look at the data in a different percpective. Time frame of available data varies for each indicator. 
+            **Select indicator for 3rd axis:** Available when 3D mode is on. Choose one of the productivity indicators from the [TPI ITL3 scorecard](https://doi.org/10.48420/c.8509779) series and look at the data in a different percpective. Time frame of available data varies for each indicator.
 
             **Time Period:** Users can specify the start and end years for the data they want to analyze. This allows for the exploration of productivity trends for a specific timeframe.
 
@@ -428,9 +445,13 @@ def main():
 
             **Toggle population bubbles:** This changes the size of the data points based on their population in that particular year relative to the other data points.
 
+            **Switch bubbles to jobs:** Uses the number of jobs in the selected year instead of population to size the bubbles. This takes precedence if both bubble switches are on.
+
+            **Compare RGVA and hours growth:** Replaces the productivity axes with average annual hours growth on the x-axis and average annual RGVA growth on the y-axis for the selected years. The y=x line marks equal growth; points above it indicate an increase in productivity, and points below it indicate a decrease.
+
             **Add label for selected regions:** The names for selected regions can be added to the graph.
 
-            **Set axes manually:** This option allows users to manually set the range for nominal productivity per hour worked on the x-axis, as well as the range for productivity growth on the y-axis. By default this option is disabled, and the axes automatically rescale dependent on the selection of the data. Manually setting the axes can be used to remove outliers from view or prevent the axes from automatically rescaling during animation.
+            **Set axes manually:** This option allows users to manually set the range for the selected x- and y-axis indicators. By default this option is disabled, and the axes automatically rescale dependent on the selection of the data. Manually setting the axes can be used to remove outliers from view or prevent the axes from automatically rescaling during animation.
 
             **Set duration of transitions:** This controls the time taken to transition in-between the years of data when animating. 
 
@@ -538,6 +559,8 @@ def main():
             showtrend=showtrend,
             color_level=color_level,
             population=population,
+            jobs=jobs,
+            compare_rgva_hours=compare_rgva_hours,
             xrange=xrange,
             yrange=yrange,
             animate=True,
@@ -582,6 +605,8 @@ def main():
             showtrend=showtrend,
             color_level=color_level,
             population=population,
+            jobs=jobs,
+            compare_rgva_hours=compare_rgva_hours,
             xrange=xrange,
             yrange=yrange,
             animate=True,
@@ -627,6 +652,8 @@ def main():
             showtrend=showtrend,
             color_level=color_level,
             population=population,
+            jobs=jobs,
+            compare_rgva_hours=compare_rgva_hours,
             xrange=xrange,
             yrange=yrange,
             animate=True,
@@ -663,6 +690,7 @@ def main():
                                 showlabel=showlabel,
                                 color_level = color_level,
                                 population=population,
+                                jobs=jobs,
                                 z=indicators[z]
                                 )
             else:
@@ -678,6 +706,8 @@ def main():
                             showtrend = showtrend,
                             color_level = color_level,
                             population = population,
+                            jobs = jobs,
+                            compare_rgva_hours = compare_rgva_hours,
                             xrange = xrange,
                             yrange = yrange,
                             )

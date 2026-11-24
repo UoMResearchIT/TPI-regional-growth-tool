@@ -20,20 +20,54 @@ import json
 import plotly.graph_objects as go
 from copy import deepcopy
 # Makes scatter displayed in streamlit
-def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, showlabel, showtrend, color_level, population, xrange = None, yrange=None, animate=False, delay=3, transition=2):
+def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, showlabel, showtrend, color_level, population, jobs=False, compare_rgva_hours=False, xrange = None, yrange=None, animate=False, delay=3, transition=2):
     pio.renderers.default='browser'
 
     metric = 'Average Annual log percentage change' #options are: 'Percentage change', 'Log percentage change', 'Average Annual Percentage change', 'Average Annual log percentage change'
+    if compare_rgva_hours:
+        x_column = 'Average Annual log percentage change in Hours'
+        y_column = 'Average Annual log percentage change in RGVA'
+        xaxistitle = str(start) + '-' + str(year) + ' average annual hours growth'
+        yaxistitle = str(start) + '-' + str(year) + ' average annual RGVA growth'
+        figure_subtitle = str(start) + '-' + str(year) + ' hours growth vs. RGVA growth'
+    else:
+        x_column = 'GVA per hour'
+        y_column = metric
+        xaxistitle = str(year) + ' output per hour worked (£)'
+        yaxistitle = str(start) + '-' + str(year) + ' ' + metric + ' in productivity'
+        figure_subtitle = str(year) + ' Nominal smoothed GVA per hour, vs. ' + str(start) + '-' + str(year) + ' productivity change'
+
     itl_string = ','.join(levels)
     figure_title = 'UK ' + itl_string + ' regions<br>' +\
-                    '<sup>' + str(year) + ' Nominal smoothed GVA per hour, vs. ' + str(start) + '-' + \
-                    str(year) + ' productivity change</sup>'
+                    '<sup>' + figure_subtitle + '</sup>'
 
                     # '<sup><b>By ' + level.upper() + ' region</b></sup>'
 
-         
-    yaxistitle = str(start) + '-' + str(year) + ' ' + metric + ' in productivity'
-    xaxistitle = str(year) + ' output per hour worked (£)'
+    dtaselected['Plot X'] = dtaselected[x_column]
+    dtaselected['Plot Y'] = dtaselected[y_column]
+    dtaAgg['Plot X'] = dtaAgg[x_column]
+    dtaAgg['Plot Y'] = dtaAgg[y_column]
+    bubble_column = 'Jobs' if jobs else ('Population' if population else None)
+    bubble_label = 'Jobs' if bubble_column == 'Jobs' else 'Population'
+    dtaselected['Bubble Size'] = dtaselected[bubble_column] if bubble_column else 0
+    dtaAgg['Bubble Size'] = dtaAgg[bubble_column] if bubble_column else 0
+
+    custom_data = ['name', 'code', 'Plot X', 'Plot Y', 'Bubble Size', 'level']
+    if compare_rgva_hours:
+        x_hover = str(start) + '-' + str(year) + ' hours growth: %{customdata[2]:.2%}'
+        y_hover = str(start) + '-' + str(year) + ' RGVA growth: %{customdata[3]:.2%}'
+    else:
+        x_hover = str(year) + ' Productivity: £%{customdata[2]:.4} per hour'
+        y_hover = 'Productivity growth: %{customdata[3]:.2%}'
+    hover_lines = [
+        '<b> %{customdata[0]}</b>',
+        '%{customdata[5]} code: %{customdata[1]}',
+        x_hover,
+        y_hover,
+    ]
+    if bubble_column:
+        hover_lines.append(bubble_label + ': %{customdata[4]:,.0f}')
+    hovertemp = '<br>'.join(hover_lines)
 
     # averages = ['UKX','MCA']
     # avgcolors = ['purple', 'blue']
@@ -56,68 +90,64 @@ def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, s
         trend = 'ols'
     else: trend = None
 
-    if dtaselected['Population'].max() - dtaselected['Population'].min() == 0:
-        dtaselected['Scaled Population'] = 1
-    else:
-        dtaselected['Scaled Population'] = (10 + ((dtaselected['Population'] - dtaselected['Population'].min()) * (40 - 10)) / (dtaselected['Population'].max() - dtaselected['Population'].min())) * size
+    if bubble_column:
+        if dtaselected['Bubble Size'].max() - dtaselected['Bubble Size'].min() == 0:
+            dtaselected['Scaled Bubbles'] = 1
+        else:
+            dtaselected['Scaled Bubbles'] = (10 + ((dtaselected['Bubble Size'] - dtaselected['Bubble Size'].min()) * (40 - 10)) / (dtaselected['Bubble Size'].max() - dtaselected['Bubble Size'].min())) * size
     if not animate:
         #Style plot
-        if population:#marker = dict(size =dtaselected['Scaled Population']*size)
-            custom_data=['name', 'code', 'GVA per hour', metric, 'Population', 'level']
-            fig = px.scatter(dtaselected.reset_index(), x = 'GVA per hour', y=metric,
+        if bubble_column:
+            fig = px.scatter(dtaselected.reset_index(), x='Plot X', y='Plot Y',
                         text=labels,
-                        color = color_level.lower() + 'name',
-                        color_discrete_map = colormap,
-                        custom_data=['name', 'code', 'GVA per hour', metric, 'Population', 'level'],
-                        trendline = trend,
+                        color=color_level.lower() + 'name',
+                        color_discrete_map=colormap,
+                        custom_data=custom_data,
+                        trendline=trend,
                         trendline_scope="overall",
                         trendline_color_override="red",
-                        size='Scaled Population',
+                        size='Scaled Bubbles',
                         width=1000*size,
                         height=700*size,
                         )
-            fig.update_traces(textposition='top center', textfont_size = 10*size)
         else:
-            custom_data=['name', 'code', 'GVA per hour', metric, 'level']
-            fig = px.scatter(dtaselected.reset_index(), x = 'GVA per hour', y=metric,
+            fig = px.scatter(dtaselected.reset_index(), x='Plot X', y='Plot Y',
                         text=labels,
-                        color = color_level.lower() + 'name',
-                        color_discrete_map = colormap,
-                        custom_data=['name', 'code', 'GVA per hour', metric, 'level'],
-                        trendline = trend,
+                        color=color_level.lower() + 'name',
+                        color_discrete_map=colormap,
+                        custom_data=custom_data,
+                        trendline=trend,
                         trendline_scope="overall",
                         trendline_color_override="red",
                         width=1000*size,
                         height=700*size,
                         )
-            fig.update_traces(marker = dict(size =10*size), textposition='top center', textfont_size = 10*size)
+            fig.update_traces(marker=dict(size=10*size))
+        fig.update_traces(textposition='top center', textfont_size=10*size)
     else:
         #Style plot
-        if population:#marker = dict(size =dtaselected['Scaled Population']*size)
-            custom_data=['name', 'code', 'GVA per hour', metric, 'Population', 'level']
-            fig = px.scatter(dtaselected.reset_index(), x = 'GVA per hour', y=metric,
+        if bubble_column:
+            fig = px.scatter(dtaselected.reset_index(), x='Plot X', y='Plot Y',
                         text=labels,
-                        color = color_level.lower() + 'name',
-                        color_discrete_map = colormap,
+                        color=color_level.lower() + 'name',
+                        color_discrete_map=colormap,
                         custom_data=custom_data,
-                        trendline = trend,
+                        trendline=trend,
                         trendline_scope="overall",
                         trendline_color_override="red",
-                        size='Scaled Population',
+                        size='Scaled Bubbles',
                         width=1000*size,
                         height=700*size,
                         animation_frame='year',
                         animation_group='name',
                         )
-            fig.update_traces(textposition='top center', textfont_size = 10*size)
         else:
-            custom_data=['name', 'code', 'GVA per hour', metric, 'level']
-            fig = px.scatter(dtaselected.reset_index(), x = 'GVA per hour', y=metric,
+            fig = px.scatter(dtaselected.reset_index(), x='Plot X', y='Plot Y',
                         text=labels,
-                        color = color_level.lower() + 'name',
-                        color_discrete_map = colormap,
+                        color=color_level.lower() + 'name',
+                        color_discrete_map=colormap,
                         custom_data=custom_data,
-                        trendline = trend,
+                        trendline=trend,
                         trendline_scope="overall",
                         trendline_color_override="red",
                         width=1000*size,
@@ -125,11 +155,12 @@ def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, s
                         animation_frame='year',
                         animation_group='name',
                         )
-            fig.update_traces(marker = dict(size =10*size), textposition='top center', textfont_size = 10*size)
-        x_min = dtaselected['GVA per hour'].min()
-        x_max = dtaselected['GVA per hour'].max()
-        y_min = dtaselected[metric].min()
-        y_max = dtaselected[metric].max()
+            fig.update_traces(marker=dict(size=10*size))
+        fig.update_traces(textposition='top center', textfont_size=10*size)
+    x_min = dtaselected['Plot X'].min()
+    x_max = dtaselected['Plot X'].max()
+    y_min = dtaselected['Plot Y'].min()
+    y_max = dtaselected['Plot Y'].max()
 
     # if showlabel:
     #     # Update label positions
@@ -146,70 +177,48 @@ def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, s
         if v == 'UKX':
             dtaAgg['flag'] = '🇬🇧'
         else:
-            subset = dtaAgg.loc[(v, slice(None), slice(None)), ['GVA per hour', metric, 'Population']]
+            subset = dtaAgg.loc[(v, slice(None), slice(None)), ['Plot X', 'Plot Y', 'Population', 'Jobs']]
             
-            dtaAgg.loc[('Average', v, f'{v} average'), ['GVA per hour', metric, 'Population']] = subset.mean().to_numpy()
+            dtaAgg.loc[('Average', v, f'{v} average'), ['Plot X', 'Plot Y', 'Population', 'Jobs']] = subset.mean().to_numpy()
             dtaAgg.to_csv('test.csv')
             dtaAgg['flag'] = '▲'
             
         if not animate:
-            avgUK = dtaAgg.loc[(slice(None), v, slice(None)),['GVA per hour', metric, 'Population', 'flag']].reset_index()
-            if population:
-                ukavg = px.scatter(avgUK.reset_index(), x = 'GVA per hour', y=metric,
-                                # hover_name = 'name',
-                                text='flag',
-                                # labels = {'nominal': 'GVA per hour', 'tot perc growth': 'Percentage change'},
-                                custom_data=custom_data,
-                                )
-            else:
-                ukavg = px.scatter(avgUK.reset_index(), x = 'GVA per hour', y=metric,
-                                # hover_name = 'name',
-                                text='flag',
-                                # labels = {'nominal': 'GVA per hour', 'tot perc growth': 'Percentage change'},
-                                custom_data=custom_data,
-                                )
+            avgUK = dtaAgg.loc[(slice(None), v, slice(None)),['Plot X', 'Plot Y', 'Population', 'Jobs', 'Bubble Size', 'flag']].reset_index()
+            ukavg = px.scatter(avgUK.reset_index(), x='Plot X', y='Plot Y',
+                            text='flag',
+                            custom_data=custom_data,
+                            )
         else:
-            avgUK = dtaAgg.loc[(slice(None), v, slice(None)),['GVA per hour', metric, 'Population', 'year', 'flag']].reset_index()
-            if population:
-                ukavg = px.scatter(avgUK.reset_index(), x = 'GVA per hour', y=metric,
-                                # hover_name = 'name',
-                                text='flag',
-                                # labels = {'nominal': 'GVA per hour', 'tot perc growth': 'Percentage change'},
-                                custom_data=custom_data,
-                                animation_frame='year',
-                                animation_group='name',
-                                )
-            else:
-                ukavg = px.scatter(avgUK.reset_index(), x = 'GVA per hour', y=metric,
-                                # hover_name = 'name',
-                                text='flag',
-                                # labels = {'nominal': 'GVA per hour', 'tot perc growth': 'Percentage change'},
-                                custom_data=custom_data,
-                                animation_frame='year',
-                                animation_group='name',
-                                )
+            avgUK = dtaAgg.loc[(slice(None), v, slice(None)),['Plot X', 'Plot Y', 'Population', 'Jobs', 'Bubble Size', 'year', 'flag']].reset_index()
+            ukavg = px.scatter(avgUK.reset_index(), x='Plot X', y='Plot Y',
+                            text='flag',
+                            custom_data=custom_data,
+                            animation_frame='year',
+                            animation_group='name',
+                            )
             hlines = []
             vlines = []
 
             for _, row in avgUK.iterrows():
                 year = row['year']
-                x_avg = row['GVA per hour']
-                y_avg = row[metric]
+                x_avg = row['Plot X']
+                y_avg = row['Plot Y']
 
                 # Horizontal line (constant y)
                 hlines.append({
-                    'x': 0, 'y': y_avg, 'year': year, 'group': f'{year}_h'
+                    'x': x_min, 'y': y_avg, 'year': year, 'group': f'{year}_h'
                 })
                 hlines.append({
-                    'x': 1000, 'y': y_avg, 'year': year, 'group': f'{year}_h'
+                    'x': x_max, 'y': y_avg, 'year': year, 'group': f'{year}_h'
                 })
 
                 # Vertical line (constant x)
                 vlines.append({
-                    'x': x_avg, 'y': -0.3, 'year': year, 'group': f'{year}_v'
+                    'x': x_avg, 'y': y_min, 'year': year, 'group': f'{year}_v'
                 })
                 vlines.append({
-                    'x': x_avg, 'y': 0.3, 'year': year, 'group': f'{year}_v'
+                    'x': x_avg, 'y': y_max, 'year': year, 'group': f'{year}_v'
                 })
 
             hlines_df = pd.DataFrame(hlines)
@@ -256,25 +265,9 @@ def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, s
             fig.add_trace(hlines_trace.data[0])
             fig.add_trace(vlines_trace.data[0])
         else:
-            fig.add_hline(y=avgUK.loc[0, metric], line_width=1, line_dash="dash", line_color=avgcolors[i])
-            fig.add_vline(x=avgUK.loc[0, 'GVA per hour'], line_width=1, line_dash="dash", line_color=avgcolors[i])
+            fig.add_hline(y=avgUK.loc[0, 'Plot Y'], line_width=1, line_dash="dash", line_color=avgcolors[i])
+            fig.add_vline(x=avgUK.loc[0, 'Plot X'], line_width=1, line_dash="dash", line_color=avgcolors[i])
             print()
-
-        if population:
-            hovertemp="<br>".join([
-                    "<b> %{customdata[0]}</b>",
-                    "%{customdata[5]} code: %{customdata[1]}",
-                    str(year) + " Productivity" + ": £%{customdata[2]:.4} per hour",
-                    "Productivity growth: %{customdata[3]:.2%}",
-                    "Population: %{customdata[4]}"
-                    ])
-        else:
-            hovertemp="<br>".join([
-                "<b> %{customdata[0]}</b>",
-                "%{customdata[4]} code: %{customdata[1]}",
-                str(year) + " Productivity" + ": £%{customdata[2]:.4} per hour",
-                "Productivity growth: %{customdata[3]:.2%}",
-                ])
 
         if animate:
             # Ensure fig.frames exists
@@ -347,8 +340,8 @@ def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, s
             fig.add_annotation({
                             'text': '<b>' + v['name'] + '</b>',
                             # 'text': text,
-                            'x': v['GVA per hour'],
-                            'y': v[metric],
+                            'x': v['Plot X'],
+                            'y': v['Plot Y'],
                             'font': {'size': 10*size, 'color': 'black'},
                             'showarrow': True,
                             'arrowwidth': 1,
@@ -391,86 +384,136 @@ def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, s
                       )
 
     fig.layout.yaxis.tickformat =  '.1%'
-    fig.update_xaxes(tickprefix='£')
+    if compare_rgva_hours:
+        fig.update_xaxes(tickformat='.1%')
+    else:
+        fig.update_xaxes(tickprefix='£')
     fig.update_yaxes(title = yaxistitle, tickfont=dict(size=12*size), title_font=dict(size=12*size))
     fig.update_xaxes(title = xaxistitle, tickfont=dict(size=12*size), title_font=dict(size=12*size))
 
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(199, 197, 197, 0.2)', zerolinewidth=1, zerolinecolor='rgba(199, 197, 197, 0.2)')
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(199, 197, 197, 0.2)', zerolinewidth=1, zerolinecolor='rgba(199, 197, 197, 0.2)')
 
-    if xrange != None: fig.update_xaxes(range=xrange)
+    if xrange != None:
+        if compare_rgva_hours:
+            xrange = [i / 100 for i in xrange]
+        fig.update_xaxes(range=xrange)
     if yrange != None:
         yrange = [i/100 for i in yrange]
 
         fig.update_yaxes(range=yrange)
+    if compare_rgva_hours:
+        if xrange is None and yrange is None:
+            axis_min = min(x_min, y_min)
+            axis_max = max(x_max, y_max)
+            padding = (axis_max - axis_min) * 0.05
+            if padding == 0:
+                padding = 0.01
+            xrange = [axis_min - padding, axis_max + padding]
+            yrange = xrange
+            fig.update_xaxes(range=xrange)
+            fig.update_yaxes(range=yrange)
+        x_bounds = xrange if xrange is not None else [x_min, x_max]
+        y_bounds = yrange if yrange is not None else [y_min, y_max]
 
     #Update the traces to inlcude the tootlip information
     fig.update_traces(hovertemplate=hovertemp)
 
 
-    #Add annotations
     tsize = 12*size
 
-    #Add annotation boxes to the plot
-    fig.add_annotation(dict(font=dict(size=tsize),
-                                            x=0.99,
-                                            y=0.03,
-                                            showarrow=False,
-                                            text="Losing ground",
-                                            textangle=0,
-                                            xanchor='right',
-                                            align='left',
-                                            #bgcolor = 'white',
-                                            opacity = 0.8,
-                                            xref="paper",
-                                            yref="paper"
-                                            ))
+    if compare_rgva_hours:
+        line_start = max(min(x_bounds), min(y_bounds))
+        line_end = min(max(x_bounds), max(y_bounds))
+        if line_start <= line_end:
+            fig.add_shape(
+                type='line',
+                x0=line_start,
+                y0=line_start,
+                x1=line_end,
+                y1=line_end,
+                line=dict(color='rgba(80, 80, 80, 0.8)', width=1, dash='dash'),
+            )
 
-    fig.add_annotation(dict(font=dict(size=tsize),
-                                            x=0.99,
-                                            y=0.97,
-                                            showarrow=False,
-                                            text="Steaming ahead",
-                                            textangle=0,
-                                            xanchor='right',
-                                            align='left',
-                                            #bgcolor = 'white',
-                                            opacity = 0.8,
-                                            xref="paper",
-                                            yref="paper"
-                                            ))
+        fig.add_annotation(dict(font=dict(size=tsize),
+                                x=0.01,
+                                y=0.97,
+                                showarrow=False,
+                                text="Increase in productivity",
+                                xanchor='left',
+                                align='left',
+                                opacity=0.8,
+                                xref="paper",
+                                yref="paper"
+                                ))
 
-    fig.add_annotation(dict(font=dict(size=tsize),
-                                            x=0.01,
-                                            y=0.97,
-                                            showarrow=False,
-                                            text="Catching up",
-                                            textangle=0,
-                                            xanchor='left',
-                                            align='left',
-                                            #bgcolor = 'white',
-                                            opacity = 0.8,
-                                            xref="paper",
-                                            yref="paper"
-                                            ))
+        fig.add_annotation(dict(font=dict(size=tsize),
+                                x=0.99,
+                                y=0.03,
+                                showarrow=False,
+                                text="Decrease in productivity",
+                                xanchor='right',
+                                align='right',
+                                opacity=0.8,
+                                xref="paper",
+                                yref="paper"
+                                ))
+    else:
+        fig.add_annotation(dict(font=dict(size=tsize),
+                                x=0.99,
+                                y=0.03,
+                                showarrow=False,
+                                text="Losing ground",
+                                textangle=0,
+                                xanchor='right',
+                                align='left',
+                                opacity=0.8,
+                                xref="paper",
+                                yref="paper"
+                                ))
 
-    fig.add_annotation(dict(font=dict(size=tsize),
-                                            x=0.01,
-                                            y=0.03,
-                                            showarrow=False,
-                                            text="Falling behind",
-                                            textangle=0,
-                                            xanchor='left',
-                                            align='left',
-                                            #bgcolor = 'white',
-                                            opacity = 0.8,
-                                            xref="paper",
-                                            yref="paper"
-                                            ))
+        fig.add_annotation(dict(font=dict(size=tsize),
+                                x=0.99,
+                                y=0.97,
+                                showarrow=False,
+                                text="Steaming ahead",
+                                textangle=0,
+                                xanchor='right',
+                                align='left',
+                                opacity=0.8,
+                                xref="paper",
+                                yref="paper"
+                                ))
+
+        fig.add_annotation(dict(font=dict(size=tsize),
+                                x=0.01,
+                                y=0.97,
+                                showarrow=False,
+                                text="Catching up",
+                                textangle=0,
+                                xanchor='left',
+                                align='left',
+                                opacity=0.8,
+                                xref="paper",
+                                yref="paper"
+                                ))
+
+        fig.add_annotation(dict(font=dict(size=tsize),
+                                x=0.01,
+                                y=0.03,
+                                showarrow=False,
+                                text="Falling behind",
+                                textangle=0,
+                                xanchor='left',
+                                align='left',
+                                opacity=0.8,
+                                xref="paper",
+                                yref="paper"
+                                ))
 
     return fig
 
-def scatter_3D(dtaselected, size, start, year, levels, legend, showlabel, color_level, population, z):
+def scatter_3D(dtaselected, size, start, year, levels, legend, showlabel, color_level, population, z, jobs=False):
     metric = 'Average Annual log percentage change' #options are: 'Percentage change', 'Log percentage change', 'Average Annual Percentage change', 'Average Annual log percentage change'
     itl_string = ','.join(levels)
     figure_title = 'UK ' + itl_string + ' regions<br>' +\
@@ -492,13 +535,16 @@ def scatter_3D(dtaselected, size, start, year, levels, legend, showlabel, color_
     else:
         colormap = colour_maps[int(color_level[3]) - 1]
     
-    if population:
-        if dtaselected['Population'].max() - dtaselected['Population'].min() == 0:
-            dtaselected['Scaled Population'] = 1
+    bubble_column = 'Jobs' if jobs else ('Population' if population else None)
+    if bubble_column:
+        dtaselected['Bubble Size'] = dtaselected[bubble_column]
+        if dtaselected['Bubble Size'].max() - dtaselected['Bubble Size'].min() == 0:
+            dtaselected['Scaled Bubbles'] = 1
         else:
-            dtaselected['Scaled Population'] = (10 + ((dtaselected['Population'] - dtaselected['Population'].min()) * (40 - 10)) / (dtaselected['Population'].max() - dtaselected['Population'].min())) * size
+            dtaselected['Scaled Bubbles'] = (10 + ((dtaselected['Bubble Size'] - dtaselected['Bubble Size'].min()) * (40 - 10)) / (dtaselected['Bubble Size'].max() - dtaselected['Bubble Size'].min())) * size
     else:
-        dtaselected['Scaled Population'] = 1
+        dtaselected['Bubble Size'] = 0
+        dtaselected['Scaled Bubbles'] = 1
     
     indicator = z.to_frame().columns[0]
     z = z.reset_index()
@@ -512,28 +558,21 @@ def scatter_3D(dtaselected, size, start, year, levels, legend, showlabel, color_
         z=indicator,  # Choose an appropriate third dimension
         color=color_level.lower() + 'name',
         color_discrete_map=colormap,
-        custom_data=['name', 'code', 'GVA per hour', metric, 'Population', 'level', indicator],
-        size='Scaled Population',
+        custom_data=['name', 'code', 'GVA per hour', metric, 'Bubble Size', 'level', indicator],
+        size='Scaled Bubbles',
         width=1200 * size,
         height=900 * size,
     )
-    if population:
-        hovertemp="<br>".join([
-                    "<b> %{customdata[0]}</b>",
-                    "%{customdata[5]} code: %{customdata[1]}",
-                    str(year) + " Productivity" + ": £%{customdata[2]:.4} per hour",
-                    "Productivity growth: %{customdata[3]:.2%}",
-                    "Population: %{customdata[4]}",
-                    indicator + ": %{customdata[6]}"
-                    ])
-    else:
-        hovertemp="<br>".join([
-                    "<b> %{customdata[0]}</b>",
-                    "%{customdata[5]} code: %{customdata[1]}",
-                    str(year) + " Productivity" + ": £%{customdata[2]:.4} per hour",
-                    "Productivity growth: %{customdata[3]:.2%}",
-                    indicator + ": %{customdata[6]:.2%}"
-                    ])
+    hover_lines = [
+        "<b> %{customdata[0]}</b>",
+        "%{customdata[5]} code: %{customdata[1]}",
+        str(year) + " Productivity: £%{customdata[2]:.4} per hour",
+        "Productivity growth: %{customdata[3]:.2%}",
+    ]
+    if bubble_column:
+        hover_lines.append(bubble_column + ": %{customdata[4]:,.0f}")
+    hover_lines.append(indicator + ": %{customdata[6]:.2%}")
+    hovertemp = "<br>".join(hover_lines)
 
     fig.update_traces(textposition='top center', textfont_size = 10*size, hovertemplate=hovertemp)
 
