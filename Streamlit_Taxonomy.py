@@ -87,7 +87,7 @@ def process_data(data, itlmapping, start, year, levels, region, customregion):
 
     #Add names names for aggregate regions and scorecard data:
     itl_dropset = {'mca': ['itl2', 'itl2name', 'itl3', 'itl3name'], 
-                   'itl1': ['itl2', 'itl2name', 'itl3', 'itl3name'], 
+                   'itl1': ['itl2', 'itl2name', 'itl3', 'itl3name', 'mca', 'mcaname'], 
                    'itl2': ['itl3', 'itl3name'], 
                    'itl3': []}
 
