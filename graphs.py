@@ -175,7 +175,7 @@ def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, s
     #add the scatter point for the reference average, 1 for UK as whole one for UK excluding London:
     for i, v in enumerate(averages):
         if v == 'UKX':
-            dtaAgg['flag'] = '🇬🇧'
+            dtaAgg['flag'] = 'UK'
         else:
             subset = dtaAgg.loc[(v, slice(None), slice(None)), ['Plot X', 'Plot Y', 'Population', 'Jobs']]
             
@@ -257,7 +257,7 @@ def scatter(dtaAgg, dtaselected, size, start, year, levels, highlight, legend, s
                                         ),
                             textfont_size = 17,
                             # fillcolor = 'white',
-                            # textfont_color = 'white',
+                            # textfont_color = 'black',
                             textposition='middle center')
         # Add UK average trace to initial frame
         fig.add_trace(ukavg.data[0])
